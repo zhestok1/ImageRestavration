@@ -1,0 +1,50 @@
+import numpy as np
+from scipy.special import eval_hermite, factorial
+from basis import Basis
+
+class GaussHermiteBasis(Basis):
+
+    def __init__(self, N, w0=1.0, window_factor=6.0):
+        super().__init__(N)
+
+        self.w0 = w0
+        L = window_factor * w0
+
+        x = np.linspace(-L/2, L/2, N)
+        self.dx = x[1] - x[0]
+
+        self.X, self.Y = np.meshgrid(x, x)
+
+    def basis_function(self, n, m):
+
+        x = self.X
+        y = self.Y
+
+        xi = np.sqrt(2) * x / self.w0
+        yi = np.sqrt(2) * y / self.w0
+
+        Hn = eval_hermite(n, xi)
+        Hm = eval_hermite(m, yi)
+
+        gaussian = np.exp(-(x**2 + y**2) / (self.w0**2))
+
+        norm = (1.0 / self.w0) * np.sqrt(
+            2.0 / (np.pi * (2**(n+m)) * factorial(n) * factorial(m))
+        )
+
+        return norm * Hn * Hm * gaussian
+
+    def get_coeff(self, image, n, m):
+        psi = self.basis_function(n, m)
+
+        # физическое скалярное произведение
+        return np.sum(image * psi) * self.dx * self.dx
+
+    def recovery(self, coeffs):
+        rec = np.zeros((self.N, self.N), dtype=np.complex128)
+
+        for n in range(self.N):
+            for m in range(self.N):
+                rec += coeffs[n, m] * self.basis_function(n, m)
+
+        return np.real(rec)
