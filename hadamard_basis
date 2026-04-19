@@ -1,0 +1,25 @@
+import numpy as np
+from scipy.linalg import hadamard
+from basis import Basis
+
+class HadamardBasis(Basis):
+
+    def __init__(self, N):
+        super().__init__(N)
+        self.H = hadamard(N)
+
+    def basis_function(self, p, l):
+        return np.outer(self.H[p], self.H[l])
+
+    def get_coeff(self, image, p, l):
+        # корректная проекция
+        return np.sum(image * self.basis_function(p, l)) / (self.N * self.N)
+
+    def recovery(self, coeffs):
+        rec = np.zeros((self.N, self.N), dtype=np.complex128)
+
+        for p in range(self.N):
+            for l in range(self.N):
+                rec += coeffs[p, l] * self.basis_function(p, l)
+
+        return np.real(rec)
